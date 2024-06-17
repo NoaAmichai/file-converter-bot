@@ -1,0 +1,3 @@
+# write all the main.py requirements to a requirements.txt file
+pyPDF2
+Pillow
