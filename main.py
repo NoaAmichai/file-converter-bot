@@ -3,11 +3,7 @@ from telegram import ReplyKeyboardMarkup, Update
 from telegram.ext import Application, CommandHandler, filters, ContextTypes, MessageHandler, ConversationHandler
 import os
 import aiohttp
-from pdf2docx import Converter as PDFConverter
-from docx2pdf import convert as docx_to_pdf
-from PIL import Image
-import sys
-import comtypes.client
+from FileConverter import FileConverter, PptxToPdfConverter,DocxToPdfConverter, PdfToDocxConverter, JpgToPngConverter, PngToJpgConverter, TiffToJpgConverter, JpgToTiffConverter, PngToTiffConverter, TiffToPngConverter
 
 TOKEN: Final = "7059338358:AAEd_Uugl2F4Yxc7wfGqx42AlKcbS1kSoRI"
 BOT_USERNAME: Final = "@convert_master_bot"
@@ -15,65 +11,6 @@ BOT_USERNAME: Final = "@convert_master_bot"
 # States for the conversation handler
 SELECT_FORMAT, RECEIVE_FILE = range(2)
 
-class FileConverter:
-    def __init__(self, input_path: str, output_path: str):
-        self.input_path = input_path
-        self.output_path = output_path
-
-    def convert(self):
-        raise NotImplementedError("Subclasses should implement this method")
-
-class DocxToPdfConverter(FileConverter):
-    def convert(self):
-        docx_to_pdf(self.input_path, self.output_path)
-
-class PdfToDocxConverter(FileConverter):
-    def convert(self):
-        pdf_converter = PDFConverter(self.input_path)
-        pdf_converter.convert(self.output_path)
-        pdf_converter.close()
-
-class JpgToPngConverter(FileConverter):
-    def convert(self):
-        with Image.open(self.input_path) as img:
-            # Convert to RGB mode if it's not already in RGB
-            if img.mode != 'RGB':
-                img = img.convert('RGB')
-            img.save(self.output_path, "PNG")
-
-class PngToJpgConverter(FileConverter):
-    def convert(self):
-        with Image.open(self.input_path) as img:
-            img.save(self.output_path, "JPG")
-            
-class TiffToJpgConverter(FileConverter):
-    def convert(self):
-        with Image.open(self.input_path) as img:
-            img.save(self.output_path, "JPG")
-
-class JpgToTiffConverter(FileConverter):
-    def convert(self):
-        with Image.open(self.input_path) as img:
-            img.save(self.output_path, "TIFF")
-
-class PngToTiffConverter(FileConverter):
-    def convert(self):
-        with Image.open(self.input_path) as img:
-            img.save(self.output_path, "TIFF")
-
-class TiffToPngConverter(FileConverter):
-    def convert(self):
-        with Image.open(self.input_path) as img:
-            img.save(self.output_path, "PNG")
-            
-class pptxToPdfConverter(FileConverter):
-    def convert(self):
-        powerpoint = comtypes.client.CreateObject("Powerpoint.Application")
-        ppt = powerpoint.Presentations.Open(self.input_path)
-        ppt.SaveAs(self.output_path, 32)
-        ppt.Close()
-        powerpoint.Quit()
-    
 
 def get_converter(original_format: str, target_format: str, input_path: str, output_path: str) -> FileConverter:
     converters = {
@@ -85,7 +22,8 @@ def get_converter(original_format: str, target_format: str, input_path: str, out
         ("jpg", "tiff"): JpgToTiffConverter,
         ("png", "tiff"): PngToTiffConverter,
         ("tiff", "png"): TiffToPngConverter,
-        ("pptx", "pdf"): pptxToPdfConverter
+        ("pptx", "pdf"): PptxToPdfConverter,
+        ("ppt", "pdf"): PptxToPdfConverter,  # Using the same converter for ppt
     }
     converter_class = converters.get((original_format, target_format))
     if converter_class:
@@ -126,6 +64,7 @@ async def convert_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=ReplyKeyboardMarkup(buttons_with_pictures, one_time_keyboard=True)
     )
     return SELECT_FORMAT
+
 
 async def select_format(update: Update, context: ContextTypes.DEFAULT_TYPE):
     format_selected = update.message.text.split()[1]  # Extract the format from the message text
