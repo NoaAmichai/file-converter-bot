@@ -65,14 +65,34 @@ class TiffToPngConverter(FileConverter):
             img.save(self.output_path, "PNG")
             
 class PptxToPdfConverter(FileConverter):
-    def convert(self):
-        powerpoint = comtypes.client.CreateObject("Powerpoint.Application")
-        powerpoint.Visible = 1  # Ensure the PowerPoint application is visible
-        try:
-            presentation = powerpoint.Presentations.Open(os.path.abspath(self.input_path), WithWindow=False)
-            presentation.SaveAs(os.path.abspath(self.output_path), FileFormat=32)  # 32 for PDF format
-            presentation.Close()
-        except Exception as e:
-            print(f"An error occurred while converting PowerPoint: {e}")
-        finally:
-            powerpoint.Quit()
+    def __init__(self, input_path: str, output_path: str, slides_per_page: int = 1):
+        super().__init__(input_path, output_path)
+        self.slides_per_page = slides_per_page
+
+def convert(self):
+    powerpoint = comtypes.client.CreateObject("Powerpoint.Application")
+    powerpoint.Visible = 1  # Ensure the PowerPoint application is visible
+    try:
+        presentation = powerpoint.Presentations.Open(os.path.abspath(self.input_path))
+        new_presentation = powerpoint.Presentations.Add()
+        slides = presentation.Slides
+        print(f"Total slides: {slides.Count}")
+        print(f"Slides per page: {self.slides_per_page}")
+        slide_per_page = self.slides_per_page
+        for i in range(1, slides.Count + 1, self.slides_per_page):
+            # Copy the slides one by one to the new presentation
+            for j in range(self.slides_per_page):
+                if i + j <= slides.Count:
+                    slide = slides[i + j]
+                    slide.Copy()
+                    print(f"Copying slide {i + j}")                    
+                    new_slide = new_presentation.Slides.Paste()[1]
+                    new_slide.Design = slide.Design
+        new_presentation.SaveAs(os.path.abspath(self.output_path), FileFormat=32)  # 32 for PDF format
+        new_presentation.Close()
+        presentation.Close()
+    except Exception as e:
+        print(f"An error occurred while converting PowerPoint: {e}")
+    finally:
+        powerpoint.Quit()
+

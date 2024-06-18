@@ -8,11 +8,11 @@ from FileConverter import FileConverter, PptxToPdfConverter,DocxToPdfConverter, 
 TOKEN: Final = "7059338358:AAEd_Uugl2F4Yxc7wfGqx42AlKcbS1kSoRI"
 BOT_USERNAME: Final = "@convert_master_bot"
 
+
 # States for the conversation handler
-SELECT_FORMAT, RECEIVE_FILE = range(2)
+SELECT_FORMAT, RECEIVE_FILE, SELECT_SLIDES_PER_PAGE = range(3)
 
-
-def get_converter(original_format: str, target_format: str, input_path: str, output_path: str) -> FileConverter:
+def get_converter(original_format: str, target_format: str, input_path: str, output_path: str, slides_per_page: int = 1) -> FileConverter:
     converters = {
         ("docx", "pdf"): DocxToPdfConverter,
         ("pdf", "docx"): PdfToDocxConverter,
@@ -22,8 +22,8 @@ def get_converter(original_format: str, target_format: str, input_path: str, out
         ("jpg", "tiff"): JpgToTiffConverter,
         ("png", "tiff"): PngToTiffConverter,
         ("tiff", "png"): TiffToPngConverter,
-        ("pptx", "pdf"): PptxToPdfConverter,
-        ("ppt", "pdf"): PptxToPdfConverter,  # Using the same converter for ppt
+        ("pptx", "pdf"): lambda input_path, output_path: PptxToPdfConverter(input_path, output_path, slides_per_page),
+        ("ppt", "pdf"): lambda input_path, output_path: PptxToPdfConverter(input_path, output_path, slides_per_page),
     }
     converter_class = converters.get((original_format, target_format))
     if converter_class:
@@ -65,7 +65,6 @@ async def convert_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return SELECT_FORMAT
 
-
 async def select_format(update: Update, context: ContextTypes.DEFAULT_TYPE):
     format_selected = update.message.text.split()[1]  # Extract the format from the message text
     context.user_data['format'] = format_selected
@@ -105,6 +104,16 @@ async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text("Failed to download the file.")
                 return RECEIVE_FILE
 
+    context.user_data['local_file_path'] = local_file_path  # Store the file path for later use
+    await update.message.reply_text("File saved. How many slides per page do you want?")
+    return SELECT_SLIDES_PER_PAGE
+
+
+async def handle_slides_per_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    slides_per_page = int(update.message.text)
+    context.user_data['slides_per_page'] = slides_per_page
+    local_file_path = context.user_data.get('local_file_path')
+    
     await perform_conversion(update, context, local_file_path)
 
     os.remove(local_file_path)
@@ -115,9 +124,10 @@ async def perform_conversion(update: Update, context: ContextTypes.DEFAULT_TYPE,
     target_format = context.user_data.get('format').lower()
     original_format = local_file_path.split('.')[-1].lower()
     output_path = local_file_path.replace(f".{original_format}", f".{target_format}")
+    slides_per_page = context.user_data.get('slides_per_page', 1)
 
     try:
-        converter = get_converter(original_format, target_format, local_file_path, output_path)
+        converter = get_converter(original_format, target_format, local_file_path, output_path, slides_per_page)
         converter.convert()
         if target_format in ['jpg', 'png']:
             await update.message.reply_photo(open(output_path, 'rb'))
@@ -132,7 +142,11 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print(f"Update {update} caused error {context.error}")
+    try:
+        print(f"Update {update} caused error {context.error}")
+    except UnicodeEncodeError:
+        print(f"Update caused error: UnicodeEncodeError")
+
 
 if __name__ == "__main__":
     print("Bot is running...")
@@ -143,6 +157,7 @@ if __name__ == "__main__":
         states={
             SELECT_FORMAT: [MessageHandler(filters.TEXT & ~filters.COMMAND, select_format)],
             RECEIVE_FILE: [MessageHandler(filters.Document.ALL | filters.PHOTO, handle_file)],
+            SELECT_SLIDES_PER_PAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_slides_per_page)],
         },
         fallbacks=[CommandHandler('cancel', cancel)],
     )
