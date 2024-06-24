@@ -1,4 +1,2 @@
-# IGNORE ALL THE DIRECTORIES IN THE PROJECT
-# ignore venv folder
-venv
-__pycache__
+venv/
+__pycache__/
