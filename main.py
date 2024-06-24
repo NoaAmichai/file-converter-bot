@@ -4,8 +4,7 @@ from telegram.ext import Application, CommandHandler, filters, ContextTypes, Mes
 import os
 import aiohttp
 from FileConverter import FileConverter, PptxToPdfConverter,DocxToPdfConverter, PdfToDocxConverter, JpgToPngConverter, PngToJpgConverter, TiffToJpgConverter, JpgToTiffConverter, PngToTiffConverter, TiffToPngConverter
-# TOKEN: Final = "7059338358:AAEd_Uugl2F4Yxc7wfGqx42AlKcbS1kSoRI"
-# hide the token
+
 TOKEN: Final = os.getenv("TOKEN")
 BOT_USERNAME: Final = "@convert_master_bot"
 
