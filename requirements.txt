@@ -1,3 +1,12 @@
 # write all the main.py requirements to a requirements.txt file
 pyPDF2
 Pillow
+numpy
+matplotlib
+requests
+typing
+telegram
+pdf2docx
+docx2pdf
+PIL
+comtypes.client
