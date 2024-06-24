@@ -1,9 +1,9 @@
 
 ---
 
-# Convert Master Bot 🤖
+# File Converter Bot 🤖
 
-Convert Master Bot is a Telegram bot that allows you to convert files to different formats right from your Telegram chat. 
+File Converter Bot is a Telegram bot that allows you to convert files to different formats right from your Telegram chat. 
 
 ## Usage
 
